@@ -1,28 +1,30 @@
-#' @title **Pitch charts with ggplot2**
-#' @description 
-#' This function allows you to create pitch charts with ggplots given a data ball coordinates and The top and bottom of the strike zone.(The limits of the strike zone can be omitted)
-#' 
-#' @param data A data that includes ball coordinates.
-#' @param x_value The x coordinates. Typically plate_x. (If you put '-', it will be a catcher's point of view.)
-#' @param y_value The y coordinates. Typically plate_z. 
-#' @param sz_top The top of strike zone. Typically sz_top. If left blank, defaults to average height.
-#' @param sz_bot The top of strike zone. Typically sz_bot. If left blank, defaults to average height.
-#' @param lim Length from center to edge. Defaults to NA.
-#' @param color_value The categorical variable that you want the geom_points to base the color on. Defaults to blue.
-#' @param density Chooses between a 2d density plot or a point plot. Defaults to FALSE.
-#' @param bin_size Size of bins used if use a density plot. Defaults to 5.
-#' @param scall_fill_palette You can use RColorBrewer's palette if use a density plot. Defaults to Blues.
-#' @param point_size Set the size of geom_point if used.
-#' @param frame Chooses from detailed, outline or none. Defaults to detailed.
-#' @param title The prot title.
-#' @return The pitch charts.
-#' @examples 
-#' ggpitchcharts(data)
-#' ggpitchcharts(data, x_value = "-plate_x", y_value = "plate_z", sz_top = "sz_top", sz_bot = "sz_bot", lim = 2, color_value = "pitch_name", tile = "Ohtani, 9.24")
-#' ggpitchcharts(data, x_value = "-plate_x", y_value = "plate_z", sz_top = "sz_top", sz_bot = "sz_bot", density = TRUE, bin_size = 8, scall_fill_palette - "OrRd", frame = "outline")
-#' @importFrom ggplot2 ggplot geom_point geom_rect coord_fixed theme geom_density_2d_filled xlim ylim xlab ylab aes scale_fill_brewer labs
-#' @export
+---
+title: "strike"
+output: html_document
+date: "2022-09-25"
+---
 
+大谷の1試合分のデータ
+```{r}
+sho_id <- playerid_lookup(last_name = "Ohtani", first_name = "Sho") %>% 
+  pull(mlbam_id)
+data <- statcast_search_pitchers(start_date = '2022-09-20',
+                                 end_date = '2022-09-26',
+                                 pitcherid =  sho_id)
+
+sho_data <- data %>% select(pitch_name, plate_x, plate_z, sz_top, sz_bot)
+```
+
+大元となるコード
+```{r}
+ggplot()+
+  geom_rect(aes(xmin = -0.83, xmax = 0.83, ymin = -0.83, ymax = 0.83), color = "gray", fill = "NA")+
+  geom_point(sho_data, mapping=aes_string(x = "plate_x", y = paste("(1.66*(","plate_z","-","sz_bot",")/(","sz_top","-","sz_bot",")-0.83)"), color = "pitch_name"))
+```
+
+
+関数
+```{r}
 ggpitchcharts <- function(data,
                           x_value = "-plate_x",
                           y_value = "plate_z",
@@ -97,6 +99,7 @@ ggpitchcharts <- function(data,
     }
     
   }else{
+    plot <- plot + theme(legend.position = 'none')
     if(!is.null(sz_top) && !is.null(sz_bot)){
       plot <- plot+
         geom_density_2d_filled(data = data, aes_string(x = x_value, y = paste("(1.66*(",y_value,"-",sz_bot,")/(",sz_top,"-",sz_bot,")-0.83)")), bins = bin_size, alpha = 0.5)+
@@ -115,8 +118,74 @@ ggpitchcharts <- function(data,
       plot <- plot+
         geom_rect(aes(xmin = -0.83, xmax = 0.83, ymin = -0.83, ymax = 0.83), fill = NA, color = "gray")
     }
-    
+
   }
   
   return(plot)
 }
+```
+
+
+```{r}
+ggpitchcharts(data, 
+              x_value = "-plate_x", y_value = "plate_z", 
+              sz_top = "sz_top", sz_bot = "sz_bot",
+              lim = 2, 
+              color_value = "pitch_name", 
+              title="Ohtani, 9.24")
+```
+
+```{r}
+ggpitchcharts(sho_data, 
+              x_value = "-plate_x", y_value = "plate_z", 
+              sz_top = "sz_top", sz_bot = "sz_bot",
+              density = TRUE, bin_size = 8, scall_fill_palette = "OrRd",
+              frame="outline")
+```
+```{r}
+ggpitchcharts(sho_data)
+```
+```{r}
+glimpse(sho_data)
+```
+
+```{r}
+ggplot(data = iris, aes(x = Sepal.Length, y = Sepal.Width)) +
+  stat_bin_2d(binwidth = 0.5, geom = "point", aes(color = ..count.., size = ..count..))
+
+ggplot(data = iris, aes(x = Sepal.Length, y = Sepal.Width)) +
+  stat_bin_hex(binwidth = 0.5, aes(fill = ..ncount..))
+```
+```{r}
+ggplot(data = iris, aes(x = Sepal.Length, y = Sepal.Width)) +
+  stat_bin_hex(binwidth = 0.1, aes(color = ..count.., size = ..count..))
+```
+
+```{r}
+data <- statcast_search_batters(start_date = '2022-03-01',
+                                 end_date = '2022-08-01',
+                                 batterid =  sho_id)
+```
+```{r}
+head(data)
+```
+
+```{r}
+sho_hits <- data %>% select(plate_x, plate_z, events, sz_top, sz_bot) %>% 
+  filter(events %in% c("single", "double", "triple", "home_run"))
+```
+
+```{r}
+head(sho_hits)
+```
+```{r}
+ggplot(data = sho_hits, aes(x = plate_x, y = (2.4*(plate_z-sz_bot)/(sz_top-sz_bot)-1.2))) +
+  stat_bin_hex(binwidth = 0.4, geom = "text", aes(color = ..count.., size = ..count..), label = "⬢", family = "STIXTwoMath") +
+  coord_fixed(ratio = 1) +
+  scale_size(range = c(0,14))+
+  theme(panel.background = element_blank(), axis.text = element_blank(), axis.ticks = element_blank())+
+  geom_rect(aes(xmin = -0.83, xmax = 0.83, ymin = -1.2, ymax = 1.2), fill = NA, color = "gray") +
+  xlab("") + ylab("")
+  
+```
+

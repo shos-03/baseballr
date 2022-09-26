@@ -10,12 +10,14 @@ ggpitchcharts(
   y_value = "plate_z",
   sz_top = NULL,
   sz_bot = NULL,
+  lim = NA,
   color_value = NULL,
   density = FALSE,
   bin_size = 5,
   scall_fill_palette = "Blues",
   point_size = 1,
-  frame = "detailed"
+  frame = "detailed",
+  title = NULL
 )
 }
 \arguments{
@@ -29,7 +31,9 @@ ggpitchcharts(
 
 \item{sz_bot}{The top of strike zone. Typically sz_bot. If left blank, defaults to average height.}
 
-\item{color_value}{The categorical variable that you want the geom_points to base the color on. Pass as a string. If left blank, defaults to blue.}
+\item{lim}{Length from center to edge. Defaults to NA.}
+
+\item{color_value}{The categorical variable that you want the geom_points to base the color on. Defaults to blue.}
 
 \item{density}{Chooses between a 2d density plot or a point plot. Defaults to FALSE.}
 
@@ -40,10 +44,17 @@ ggpitchcharts(
 \item{point_size}{Set the size of geom_point if used.}
 
 \item{frame}{Chooses from detailed, outline or none. Defaults to detailed.}
+
+\item{title}{The prot title.}
 }
 \value{
 The pitch charts.
 }
 \description{
 This function allows you to create pitch charts with ggplots given a data ball coordinates and The top and bottom of the strike zone.(The limits of the strike zone can be omitted)
+}
+\examples{
+ggpitchcharts(data)
+ggpitchcharts(data, x_value = "-plate_x", y_value = "plate_z", sz_top = "sz_top", sz_bot = "sz_bot", lim = 2, color_value = "pitch_name", tile = "Ohtani, 9.24")
+ggpitchcharts(data, x_value = "-plate_x", y_value = "plate_z", sz_top = "sz_top", sz_bot = "sz_bot", density = TRUE, bin_size = 8, scall_fill_palette - "OrRd", frame = "outline")
 }
