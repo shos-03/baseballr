@@ -4,7 +4,7 @@
 #' 
 #' @param data A data that includes ball coordinates.
 #' @param x_value The x coordinates. Typically plate_x. (If you put '-', it will be a catcher's point of view.)
-#' @param y_value The z coordinates. Typically plate_z. 
+#' @param y_value The y coordinates. Typically plate_z. 
 #' @param sz_top The top of strike zone. Typically sz_top. If left blank, defaults to average height.
 #' @param sz_bot The top of strike zone. Typically sz_bot. If left blank, defaults to average height.
 #' @param color_value The categorical variable that you want the geom_points to base the color on. Pass as a string. If left blank, defaults to blue.
@@ -15,7 +15,7 @@
 #' @param frame Chooses from detailed, outline or none. Defaults to detailed.
 #' @return The pitch charts.
 #' 
-#' @importFrom ggplot2 ggplot geom_point geom_rect coord_fixed theme stat_density2d xlim ylim aes scale_fill_brewer
+#' @importFrom ggplot2 ggplot geom_point geom_rect coord_fixed theme geom_density_2d_filled xlim ylim xlab ylab aes scale_fill_brewer 
 #' @export
 
 ggpitchcharts <- function(data,
@@ -29,6 +29,8 @@ ggpitchcharts <- function(data,
                          scall_fill_palette = "Blues",
                          point_size = 1,
                          frame = "detailed") {
+  
+  x1 <- x2 <- y1 <- y2 <- NULL
   
   ball_zones<- data.frame(
     x1 = rep(c(-2, 0), each = 2),
@@ -68,19 +70,19 @@ ggpitchcharts <- function(data,
     
     if(!is.null(sz_top) && !is.null(sz_bot)){
       p2 <- p1+
-        geom_point(data = data, aes(x = plate_x, y = (1.66*(plate_z-sz_bot)/(sz_top-sz_bot)-0.83), color = color_value))
+        geom_point(data = data, aes(x = x_value, y = (1.66*(y_value-sz_bot)/(sz_top-sz_bot)-0.83), color = color_value))
     }else{
       p2 <- p1+
-        geom_point(data = data, aes(x = plate_x, y = (1.66*(plate_z-1.57)/(3.39-1.57)-0.83), color = color_value))
+        geom_point(data = data, aes(x = x_value, y = (1.66*(y_value-1.57)/(3.39-1.57)-0.83), color = color_value))
     }
   }else{
     if(!is.null(sz_top) && !is.null(sz_bot)){
       p1 <- p0+
-        geom_density_2d_filled(data = data,aes(x = plate_x, y = (1.66*(plate_z-sz_bot)/(sz_top-sz_bot)-0.83)),bins = bin_size, alpha = 0.5)+
+        geom_density_2d_filled(data = data,aes(x = x_value, y = (1.66*(y_value-sz_bot)/(sz_top-sz_bot)-0.83)),bins = bin_size, alpha = 0.5)+
         scale_fill_brewer(palette = scall_fill_palette)
     }else{
       p1 <- p0+
-        geom_density_2d_filled(data = data,aes(x = plate_x, y = (1.66*(plate_z-1.57)/(3.39-1.57)-0.83)),bins = bin_size, alpha = 0.5)+
+        geom_density_2d_filled(data = data,aes(x = x_value, y = (1.66*(y_value-1.57)/(3.39-1.57)-0.83)),bins = bin_size, alpha = 0.5)+
         scale_fill_brewer(palette = scall_fill_palette)
     }
     
