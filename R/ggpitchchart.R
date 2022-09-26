@@ -7,7 +7,7 @@
 #' @param y_value The y coordinates. Typically plate_z. 
 #' @param sz_top The top of strike zone. Typically sz_top. If left blank, defaults to average height.
 #' @param sz_bot The top of strike zone. Typically sz_bot. If left blank, defaults to average height.
-#' @param color_value The categorical variable that you want the geom_points to base the color on.
+#' @param color_value The categorical variable that you want the geom_points to base the color on. Defaults to blue.
 #' @param density Chooses between a 2d density plot or a point plot. Defaults to FALSE.
 #' @param bin_size Size of bins used if use a density plot. Defaults to 5.
 #' @param scall_fill_palette You can use RColorBrewer's palette if use a density plot. Defaults to Blues.
@@ -54,7 +54,7 @@ ggpitchcharts <- function(data,
     ylim(-2, 2) + ylab("") +
     coord_fixed(ratio = 1) +
     theme(panel.background = element_blank(), axis.text = element_blank(), axis.ticks = element_blank(),
-          plot.title = element_text(face = "bold", size = 25), legend.position = "bottom", legend.text = element_text(size = 17), legend.title = element_text(size = 17))
+          plot.title = element_text(face = "bold", size = 12), legend.position = "bottom", legend.text = element_text(size = 8), legend.title = element_text(size = 8))
   
   
   if(!density){
@@ -71,13 +71,25 @@ ggpitchcharts <- function(data,
       p1 <- p0
     }
     
-    if(!is.null(sz_top) && !is.null(sz_bot)){
-      p2 <- p1+
-        geom_point(data = data, mapping = aes_string(x = x_value, y = paste("(1.66*(",y_value,"-",sz_bot,")/(",sz_top,"-",sz_bot,")-0.83)"), color = color_value))
+    if(is.null(color_value)){
+      if(!is.null(sz_top) && !is.null(sz_bot)){
+        p2 <- p1+
+          geom_point(data = data, mapping = aes_string(x = x_value, y = paste("(1.66*(",y_value,"-",sz_bot,")/(",sz_top,"-",sz_bot,")-0.83)")),color = "blue")
+      }else{
+        p2 <- p1+
+          geom_point(data = data, mapping = aes_string(x = x_value, y = paste("(1.66*(",y_value,"-1.57)/(3.39-1.57)-0.83)")), color = "blue")
+      }
     }else{
-      p2 <- p1+
-        geom_point(data = data, mapping = aes_string(x = x_value, y = paste("(1.66*(",y_value,"-1.57)/(3.39-1.57)-0.83)"), color = color_value))
+      
+      if(!is.null(sz_top) && !is.null(sz_bot)){
+        p2 <- p1+
+          geom_point(data = data, mapping = aes_string(x = x_value, y = paste("(1.66*(",y_value,"-",sz_bot,")/(",sz_top,"-",sz_bot,")-0.83)"), color = color_value))
+      }else{
+        p2 <- p1+
+          geom_point(data = data, mapping = aes_string(x = x_value, y = paste("(1.66*(",y_value,"-1.57)/(3.39-1.57)-0.83)"), color = color_value))
+      }
     }
+    
   }else{
     if(!is.null(sz_top) && !is.null(sz_bot)){
       p1 <- p0+
