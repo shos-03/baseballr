@@ -14,7 +14,9 @@
 #' @param point_size Set the size of geom_point if used.
 #' @param frame Chooses from detailed, outline or none. Defaults to detailed.
 #' @return The pitch charts.
-#' 
+#' @examples 
+#' ggpitchcharts(data, x_value = "-plate_x", y_value = "plate_z", sz_top = "sz_top", sz_bot = "sz_bot", color_value = "pitch_name")
+#' ggpitchcharts(data, x_value = "-plate_x", y_value = "plate_z", sz_top = "sz_top", sz_bot = "sz_bot", density = TRUE, frame = "outline")
 #' @importFrom ggplot2 ggplot geom_point geom_rect coord_fixed theme geom_density_2d_filled xlim ylim xlab ylab aes scale_fill_brewer 
 #' @export
 
