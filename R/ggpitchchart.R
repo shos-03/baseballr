@@ -7,7 +7,7 @@
 #' @param y_value The y coordinates. Typically plate_z. 
 #' @param sz_top The top of strike zone. Typically sz_top. If left blank, defaults to average height.
 #' @param sz_bot The top of strike zone. Typically sz_bot. If left blank, defaults to average height.
-#' @param color_value The categorical variable that you want the geom_points to base the color on. Pass as a string. If left blank, defaults to blue.
+#' @param color_value The categorical variable that you want the geom_points to base the color on.
 #' @param density Chooses between a 2d density plot or a point plot. Defaults to FALSE.
 #' @param bin_size Size of bins used if use a density plot. Defaults to 5.
 #' @param scall_fill_palette You can use RColorBrewer's palette if use a density plot. Defaults to Blues.
@@ -19,16 +19,16 @@
 #' @export
 
 ggpitchcharts <- function(data,
-                         x_value = "-plate_x",
-                         y_value = "plate_z",
-                         sz_top = NULL,
-                         sz_bot = NULL,
-                         color_value = NULL,
-                         density = FALSE,
-                         bin_size = 5,
-                         scall_fill_palette = "Blues",
-                         point_size = 1,
-                         frame = "detailed") {
+                          x_value = "-plate_x",
+                          y_value = "plate_z",
+                          sz_top = NULL,
+                          sz_bot = NULL,
+                          color_value = NULL,
+                          density = FALSE,
+                          bin_size = 5,
+                          scall_fill_palette = "Blues",
+                          point_size = 1,
+                          frame = "detailed") {
   
   x1 <- x2 <- y1 <- y2 <- NULL
   
@@ -46,23 +46,24 @@ ggpitchcharts <- function(data,
     y2 = rep(c(-0.25, 0.25, 0.83), 3)
   )
   
-
-  p0 <- ggplot()+
-      xlim(-2, 2) + xlab("") +
-      ylim(-2, 2) + ylab("") +
-      coord_fixed(ratio = 1) +
-      theme(panel.background = element_blank(), axis.text = element_blank(), axis.ticks = element_blank(),
-            plot.title = element_text(face = "bold", size = 25), legend.position = "bottom", legend.text = element_text(size = 17), legend.title = element_text(size = 17))
-        
   
-  if(!is.null(density)){
+  p0 <- ggplot()+
+    xlim(-2, 2) + xlab("") +
+    ylim(-2, 2) + ylab("") +
+    coord_fixed(ratio = 1) +
+    theme(panel.background = element_blank(), axis.text = element_blank(), axis.ticks = element_blank(),
+          plot.title = element_text(face = "bold", size = 25), legend.position = "bottom", legend.text = element_text(size = 17), legend.title = element_text(size = 17))
+  
+  
+  if(!density){
     if(frame == "detailed"){
       p1 <- p0+
         geom_rect(data = ball_zones, aes(xmin = x1, xmax = x2, ymin = y1, ymax = y2), fill = "white", color = "gray")+
         geom_rect(data = strike_zones, aes(xmin = x1, xmax = x2, ymin = y1, ymax = y2), fill = "white", color = "gray")
     } 
     if(frame == "outline"){
-      p1 <- p0
+      p1 <- p0+
+        geom_rect(aes(xmin = -0.83, xmax = 0.83, ymin = -0.83, ymax = 0.83), fill = NA, color = "gray")
     }
     if(frame == "none"){
       p1 <- p0
@@ -70,29 +71,29 @@ ggpitchcharts <- function(data,
     
     if(!is.null(sz_top) && !is.null(sz_bot)){
       p2 <- p1+
-        geom_point(data = data, aes(x = x_value, y = (1.66*(y_value-sz_bot)/(sz_top-sz_bot)-0.83), color = color_value))
+        geom_point(data = data, mapping = aes_string(x = x_value, y = paste("(1.66*(",y_value,"-",sz_bot,")/(",sz_top,"-",sz_bot,")-0.83)"), color = color_value))
     }else{
       p2 <- p1+
-        geom_point(data = data, aes(x = x_value, y = (1.66*(y_value-1.57)/(3.39-1.57)-0.83), color = color_value))
+        geom_point(data = data, mapping = aes_string(x = x_value, y = paste("(1.66*(",y_value,"-1.57)/(3.39-1.57)-0.83)"), color = color_value))
     }
   }else{
     if(!is.null(sz_top) && !is.null(sz_bot)){
       p1 <- p0+
-        geom_density_2d_filled(data = data,aes(x = x_value, y = (1.66*(y_value-sz_bot)/(sz_top-sz_bot)-0.83)),bins = bin_size, alpha = 0.5)+
+        geom_density_2d_filled(data = data, aes_string(x = x_value, y = paste("(1.66*(",y_value,"-",sz_bot,")/(",sz_top,"-",sz_bot,")-0.83)")), bins = bin_size, alpha = 0.5)+
         scale_fill_brewer(palette = scall_fill_palette)
     }else{
       p1 <- p0+
-        geom_density_2d_filled(data = data,aes(x = x_value, y = (1.66*(y_value-1.57)/(3.39-1.57)-0.83)),bins = bin_size, alpha = 0.5)+
+        geom_density_2d_filled(data = data,aes(x = x_value,y = paste("(1.66*(",y_value,"-1.57)/(3.39-1.57)-0.83)")),bins = bin_size, alpha = 0.5)+
         scale_fill_brewer(palette = scall_fill_palette)
     }
     
     if(frame == "detailed"){
       p2 <- p1+
-        geom_rect(data = ball_zones, aes(xmin = x1, xmax = x2, ymin = y1, ymax = y2), fill = "white", color = "gray")+
-        geom_rect(data = strike_zones, aes(xmin = x1, xmax = x2, ymin = y1, ymax = y2), fill = "white", color = "gray")
+        geom_rect(data = strike_zones, aes(xmin = x1, xmax = x2, ymin = y1, ymax = y2), fill = NA, color = "gray")
     } 
     if(frame == "outline"){
-      p2 <- p1
+      p2 <- p1+
+        geom_rect(aes(xmin = -0.83, xmax = 0.83, ymin = -0.83, ymax = 0.83), fill = NA, color = "gray")
     }
     if(frame == "none"){
       p2 <- p1
