@@ -4,7 +4,14 @@ output: html_document
 date: "2022-09-25"
 ---
 
-大谷の1試合分のデータ
+ライブラリ
+```{r}
+library(tidyverse)
+library(baseballr)
+```
+
+
+利用するデータ
 ```{r}
 sho_id <- playerid_lookup(last_name = "Ohtani", first_name = "Sho") %>% 
   pull(mlbam_id)
@@ -12,7 +19,12 @@ data <- statcast_search_pitchers(start_date = '2022-09-20',
                                  end_date = '2022-09-26',
                                  pitcherid =  sho_id)
 
-sho_data <- data %>% select(pitch_type, plate_x, plate_z, sz_top, sz_bot)
+sho_p <- data %>% select(pitch_type, plate_x, plate_z, sz_top, sz_bot)
+
+data <- statcast_search_batters(start_date = '2022-03-01',
+                                 end_date = '2022-09-26',
+                                 batterid =  sho_id)
+sho_b <- data %>% select(events, plate_x, plate_z, sz_top, sz_bot)
 ```
 
 ## pitch_chart
@@ -161,7 +173,109 @@ ggplot(data = sho_hits, aes(x = plate_x, y = (2.4*(plate_z-sz_bot)/(sz_top-sz_bo
   theme(panel.background = element_blank(), axis.text = element_blank(), axis.ticks = element_blank())+
   geom_rect(aes(xmin = -0.83, xmax = 0.83, ymin = -1.2, ymax = 1.2), fill = NA, color = "gray") +
   xlab("") + ylab("")+
+  xlab("") + ylab("")+
   labs(title = "Ohtani Hits -2022")
   
+```
+
+六角形を作る
+```{r}
+id <- seq(1, 1600)
+y <- rep(seq(0, 38, by=2),20)
+
+x <- (id-1) %/% 40
+z <- data.frame(x, y)
+
+z$y[x %% 2 == 0] <- z$y[x %% 2 == 0] + 1
+
+z$y <- z$y*sqrt(3)
+```
+```{r}
+ggplot(z)+
+  geom_text(aes(x = x, y = y), label = "⬡", family = "AppleSymbols", size =4)+
+  coord_fixed(ratio = 1)
+```
+距離を測る
+```{r}
+H <- cbind(z$x-20, z$y-20)
+A <- cbind(sho_p$plate_x*5, sho_p$plate_z*5)
+Z <- rbind(A,H)
+Dist <- as.matrix(dist(Z))[nrow(A)+1:nrow(H), 1:nrow(A)]
+Mins <- apply(Dist, 2, which.min)
+```
+```{r}
+hsum <- NULL
+for(i in 1:1600){
+  hsum[i] <- sum(Mins==i)
+}
+
+glimpse(Dist)
+glimpse(Mins)
+```
+plotする
+```{r}
+Data <- data_frame(z, hsum)
+ggplot(Data)+
+  geom_text(aes(x = x, y = y, size=hsum), label = "⬡", family = "AppleSymbols")+
+  coord_fixed(ratio = 1)
+```
+
+打者だと..
+```{r}
+hits <- sho_b %>% 
+  filter(events %in% c("HR", "single", "double", "triple"))%>% 
+  drop_na(everything())
+
+PA <- sho_b %>% 
+  filter(!events %in% c("", "sac_fly", "sac", "walk")) %>% 
+  drop_na(everything())
+
+Hex_h <- cbind(z$x-20, z$y-20*sqrt(3))
+
+hits_co <- cbind(hits$plate_x*5, (hits$plate_z-hits$sz_bot)/(hits$sz_top-hits$sz_bot)*13-6.5)
+PA_co <- cbind(PA$plate_x*5, (PA$plate_z-PA$sz_bot)/(PA$sz_top-PA$sz_bot)*13-6.5)
+
+Z <- rbind(hits_co, Hex_h)
+Dist <- as.matrix(dist(Z))[nrow(hits_co)+1:nrow(Hex_h), 1:nrow(hits_co)]
+Mins_h <- apply(Dist, 2, which.min)
+
+Z <- rbind(PA_co, Hex_h)
+Dist <- as.matrix(dist(Z))[1:nrow(PA_co), nrow(PA_co)+1:nrow(Hex_h)]
+Mins_PA <- apply(Dist, 1, which.min)
+
+Sum_PA <- NULL
+for(i in 1:1600){
+  Sum_PA[i] <- sum(Mins_PA==i)
+}
+
+Sum_h <- NULL
+for(i in 1:1600){
+  Sum_h[i] <- sum(Mins_h==i)
+}
+
+Avg <- Sum_h/Sum_PA
+```
+
+plotする
+```{r}
+Data <- data_frame(Sum_h, Avg, Hex_h)
+base <- data.frame(
+  x = c(0, -5, -4.15, 4.15, 5),
+  y = c(-16.8, -15.3, -13, -13, -15.3))
+
+ggplot()+
+  theme(panel.background = element_blank(), axis.text = element_blank(), axis.ticks = element_blank())+
+  geom_polygon(base, mapping=aes(x = x, y = y), fill = "gray")+
+  geom_text(Data, mapping=aes(x = Hex_h[,1], y = Hex_h[,2], size = Sum_h, color = Avg), label = "⬢", family = "AppleSymbols")+
+  scale_size(range = c(0, 10))+
+  coord_fixed(ratio = 1)+
+  geom_rect(aes(xmin = -4.15, xmax = 4.15, ymin = -6.5, ymax = 6.5), fill = NA, color = "gray20")+
+  xlim(-10,10)+ylim(-20,15)
+```
+
+
+```{r}
+ggplot(sho_b) +
+  geom_point(mapping=aes(x=plate_x, y=plate_z, color=events))
 ```
 
