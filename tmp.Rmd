@@ -12,41 +12,28 @@ data <- statcast_search_pitchers(start_date = '2022-09-20',
                                  end_date = '2022-09-26',
                                  pitcherid =  sho_id)
 
-sho_data <- data %>% select(pitch_name, plate_x, plate_z, sz_top, sz_bot)
+sho_data <- data %>% select(pitch_type, plate_x, plate_z, sz_top, sz_bot)
 ```
 
-大元となるコード
+## pitch_chart
 ```{r}
-ggplot()+
-  geom_rect(aes(xmin = -0.83, xmax = 0.83, ymin = -0.83, ymax = 0.83), color = "gray", fill = "NA")+
-  geom_point(sho_data, mapping=aes_string(x = "plate_x", y = paste("(1.66*(","plate_z","-","sz_bot",")/(","sz_top","-","sz_bot",")-0.83)"), color = "pitch_name"))
-```
-
-
-関数
-```{r}
-ggpitchcharts <- function(data,
-                          x_value = "-plate_x",
-                          y_value = "plate_z",
-                          sz_top = NULL,
-                          sz_bot = NULL,
-                          lim = NA,
-                          color_value = NULL,
-                          density = FALSE,
-                          bin_size = 5,
-                          scall_fill_palette = "Blues",
-                          point_size = 1,
-                          frame = "detailed",
-                          title = NULL) {
+ggpitchchart <- function(data,
+                         x_value = "plate_x",
+                         z_value = "plate_z",
+                         sz_top = NULL,
+                         sz_bot = NULL,
+                         lim = NA,
+                         color_value = NULL,
+                         density = FALSE,
+                         bin_size = 8,
+                         scall_fill_palette = "Blues",
+                         point_size = 10,
+                         point_alpha = 0.75,
+                         div9 = TRUE,
+                         base = FALSE,
+                         title = NULL) {
   
   x1 <- x2 <- y1 <- y2 <- NULL
-  
-  ball_zones<- data.frame(
-    x1 = rep(c(-2, 0), each = 2),
-    x2 = rep(c(0, 2), each = 2),
-    y1 = rep(c(-2, 0), 2),
-    y2 = rep(c(0, 2), 2)
-  )
   
   strike_zones <- data.frame(
     x1 = rep(c(-0.83, -0.25, 0.25), each = 3),
@@ -61,131 +48,120 @@ ggpitchcharts <- function(data,
     xlab("") + ylab("") +
     coord_fixed(ratio = 1) +
     theme(panel.background = element_blank(), axis.text = element_blank(), axis.ticks = element_blank(),
-          plot.title = element_text(face = "bold", size = 12), legend.position = "bottom", legend.text = element_text(size = 8), legend.title = element_text(size = 8))
+          plot.title = element_text(face = "bold", size = 25))
   
   if(!is.null(title)){
     plot <- plot +
       labs(title = title)
   }
   
+  if(base){
+    base <- data.frame(
+  x = c(0, -1, -0.83, 0.83, 1),
+  y = c(-2.4, -2.1, -1.66, -1.66, -2.1))
+    
+    plot <- plot +
+      geom_polygon(base, mapping=aes(x=x, y=y), fill = "gray")
+  }
+  
   if(!density){
-    if(frame == "detailed"){
+    plot <- plot+
+      theme(legend.position = "right", legend.text = element_text(size = 17), legend.title = element_text(size = 17))
+    
+    if(div9){
       plot <- plot+
-        geom_rect(data = ball_zones, aes(xmin = x1, xmax = x2, ymin = y1, ymax = y2), fill = "white", color = "gray")+
-        geom_rect(data = strike_zones, aes(xmin = x1, xmax = x2, ymin = y1, ymax = y2), fill = "white", color = "gray")
-    } 
-    if(frame == "outline"){
+        geom_rect(data = strike_zones, aes(xmin = x1, xmax = x2, ymin = y1, ymax = y2), fill = "white", color = "gray20")
+    }else{
       plot <- plot+
-        geom_rect(aes(xmin = -0.83, xmax = 0.83, ymin = -0.83, ymax = 0.83), fill = NA, color = "gray")
+        geom_rect(aes(xmin = -0.83, xmax = 0.83, ymin = -0.83, ymax = 0.83), fill = NA, color = "gray20")
     }
     
     if(is.null(color_value)){
       if(!is.null(sz_top) && !is.null(sz_bot)){
         plot <- plot+
-          geom_point(data = data, mapping = aes_string(x = x_value, y = paste("(1.66*(",y_value,"-",sz_bot,")/(",sz_top,"-",sz_bot,")-0.83)")),color = "blue")
+          geom_point(data = data, mapping = aes_string(x = x_value, y = paste("(1.66*(",z_value,"-",sz_bot,")/(",sz_top,"-",sz_bot,")-0.83)")),color = "blue", alpha = point_alpha, size = point_size)
       }else{
         plot <- plot+
-          geom_point(data = data, mapping = aes_string(x = x_value, y = paste("(1.66*(",y_value,"-1.57)/(3.39-1.57)-0.83)")), color = "blue")
+          geom_point(data = data, mapping = aes_string(x = x_value, y = paste("(1.66*(",z_value,"-1.57)/(3.39-1.57)-0.83)")), color = "blue", alpha = point_alpha, size = point_size)
       }
     }else{
       
       if(!is.null(sz_top) && !is.null(sz_bot)){
         plot <- plot+
-          geom_point(data = data, mapping = aes_string(x = x_value, y = paste("(1.66*(",y_value,"-",sz_bot,")/(",sz_top,"-",sz_bot,")-0.83)"), color = color_value))
+          geom_point(data = data, mapping = aes_string(x = x_value, y = paste("(1.66*(",z_value,"-",sz_bot,")/(",sz_top,"-",sz_bot,")-0.83)"), color = color_value), alpha = point_alpha, size = point_size)
       }else{
         plot <- plot+
-          geom_point(data = data, mapping = aes_string(x = x_value, y = paste("(1.66*(",y_value,"-1.57)/(3.39-1.57)-0.83)"), color = color_value))
+          geom_point(data = data, mapping = aes_string(x = x_value, y = paste("(1.66*(",z_value,"-1.57)/(3.39-1.57)-0.83)"), color = color_value), alpha = point_alpha, size = point_size)
       }
     }
     
   }else{
-    plot <- plot + theme(legend.position = 'none')
+    plot <- plot+
+      theme(legend.position = "none")
+    
     if(!is.null(sz_top) && !is.null(sz_bot)){
       plot <- plot+
-        geom_density_2d_filled(data = data, aes_string(x = x_value, y = paste("(1.66*(",y_value,"-",sz_bot,")/(",sz_top,"-",sz_bot,")-0.83)")), bins = bin_size, alpha = 0.5)+
+        geom_density_2d_filled(data = data, aes_string(x = x_value, y = paste("(1.66*(",z_value,"-",sz_bot,")/(",sz_top,"-",sz_bot,")-0.83)")), bins = bin_size, alpha = 0.5)+
         scale_fill_brewer(palette = scall_fill_palette)
     }else{
       plot <- plot+
-        geom_density_2d_filled(data = data,aes(x = x_value,y = paste("(1.66*(",y_value,"-1.57)/(3.39-1.57)-0.83)")),bins = bin_size, alpha = 0.5)+
+        geom_density_2d_filled(data = data,aes(x = x_value,y = paste("(1.66*(",z_value,"-1.57)/(3.39-1.57)-0.83)")),bins = bin_size, alpha = 0.5)+
         scale_fill_brewer(palette = scall_fill_palette)
     }
     
-    if(frame == "detailed"){
+    if(div9){
       plot <- plot+
-        geom_rect(data = strike_zones, aes(xmin = x1, xmax = x2, ymin = y1, ymax = y2), fill = NA, color = "gray")
-    } 
-    if(frame == "outline"){
+        geom_rect(data = strike_zones, aes(xmin = x1, xmax = x2, ymin = y1, ymax = y2), fill = NA, color = "gray20")
+    }else{
       plot <- plot+
-        geom_rect(aes(xmin = -0.83, xmax = 0.83, ymin = -0.83, ymax = 0.83), fill = NA, color = "gray")
+        geom_rect(aes(xmin = -0.83, xmax = 0.83, ymin = -0.83, ymax = 0.83), fill = NA, color = "gray20")
     }
-
+    
   }
   
   return(plot)
 }
 ```
 
-
 ```{r}
-ggpitchcharts(data, 
-              x_value = "-plate_x", y_value = "plate_z", 
-              sz_top = "sz_top", sz_bot = "sz_bot",
-              lim = 2, 
-              color_value = "pitch_name", 
-              title="Ohtani, 9.24")
+ggpitchchart(sho_data, x_value = "plate_x", z_value = "plate_z", sz_top = "sz_top", sz_bot = "sz_bot", color_value = "pitch_type", base = TRUE, title = "Ohtani, 9.24")
+ggpitchchart(sho_data, x_value = "plate_x", z_value = "plate_z", sz_top = "sz_top", sz_bot = "sz_bot", lim = 2, density = TRUE, div9 = FALSE, title = "Ohtani, 9.24")
+```
+```{r}
+df2 <- data.frame(
+  x = c(0, -1, -0.83, 0.83, 1),
+  y = c(-2.4, -2.1, -1.66, -1.66, -2.1)
+)
+ggpitchchart(sho_data)+
+  geom_polygon(df2, mapping=aes(x=x, y=y), fill = "gray")
 ```
 
-```{r}
-ggpitchcharts(sho_data, 
-              x_value = "-plate_x", y_value = "plate_z", 
-              sz_top = "sz_top", sz_bot = "sz_bot",
-              density = TRUE, bin_size = 8, scall_fill_palette = "OrRd",
-              frame="outline")
-```
-```{r}
-ggpitchcharts(sho_data)
-```
-```{r}
-glimpse(sho_data)
-```
 
+## zone_chart
 ```{r}
-ggplot(data = iris, aes(x = Sepal.Length, y = Sepal.Width)) +
-  stat_bin_2d(binwidth = 0.5, geom = "point", aes(color = ..count.., size = ..count..))
-
-ggplot(data = iris, aes(x = Sepal.Length, y = Sepal.Width)) +
-  stat_bin_hex(binwidth = 0.5, aes(fill = ..ncount..))
-```
-```{r}
-ggplot(data = iris, aes(x = Sepal.Length, y = Sepal.Width)) +
-  stat_bin_hex(binwidth = 0.1, aes(color = ..count.., size = ..count..))
+avg <- 0
+for(i in 1:9){
+  avg[i] <- sum(data$zone == i & data$events %in% c("single", "double", "triple", "home_run"))/sum(data$zone == 1 & data$events %in% c("single", "double", "triple", "k", "home_run", "field_out"))
+}
 ```
 
 ```{r}
-data <- statcast_search_batters(start_date = '2022-03-01',
-                                 end_date = '2022-08-01',
-                                 batterid =  sho_id)
-```
-```{r}
-head(data)
+dTH <- 1:14
+
+sapply(dTH, function(x){sum(zone == x, na.rm = TRUE)})
 ```
 
-```{r}
-sho_hits <- data %>% select(plate_x, plate_z, events, sz_top, sz_bot) %>% 
-  filter(events %in% c("single", "double", "triple", "home_run"))
-```
 
-```{r}
-head(sho_hits)
-```
+## hex_chart
 ```{r}
 ggplot(data = sho_hits, aes(x = plate_x, y = (2.4*(plate_z-sz_bot)/(sz_top-sz_bot)-1.2))) +
-  stat_bin_hex(binwidth = 0.4, geom = "text", aes(color = ..count.., size = ..count..), label = "⬢", family = "STIXTwoMath") +
+  stat_bin_hex(binwidth = 0.4, geom = "text", aes(color = after_stat(count), size =  after_stat(count)), label = "⬢", family = "STIXTwoMath") +
   coord_fixed(ratio = 1) +
-  scale_size(range = c(0,14))+
+  scale_size(range = c(0,12))+
   theme(panel.background = element_blank(), axis.text = element_blank(), axis.ticks = element_blank())+
   geom_rect(aes(xmin = -0.83, xmax = 0.83, ymin = -1.2, ymax = 1.2), fill = NA, color = "gray") +
-  xlab("") + ylab("")
+  xlab("") + ylab("")+
+  labs(title = "Ohtani Hits -2022")
   
 ```
 
